@@ -1,0 +1,25 @@
+# Python virtual environment folders
+/venv/
+/.venv/
+/env/
+/ENV/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE and editor specific folders
+.vscode/
+.idea/
+*.DS_Store
+
+# Dataset folders
+/celebdataset/
+/dataset/
+/extracted_frames/
+/synthbuster/
+
+# Saved models folder
+/models/
