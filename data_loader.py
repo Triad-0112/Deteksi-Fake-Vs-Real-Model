@@ -14,12 +14,10 @@ import warnings
 # --- Configuration ---
 IMAGE_SIZE = 224
 BATCH_SIZE = 16
-# Set the number of workers based on your system's capabilities. 4 is a good starting point.
 NUM_WORKERS = 4
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 
-# --- Data Transformation ---
 data_transforms = {
     'train': transforms.Compose([
         transforms.ToPILImage(),
@@ -37,11 +35,6 @@ data_transforms = {
 }
 
 class FinalDataset(Dataset):
-    """
-    This Dataset class handles two types of inputs:
-    1. A path to a single image file.
-    2. A path to a folder of frames.
-    """
     def __init__(self, path_list, labels, transform=None):
         self.path_list = path_list
         self.labels = labels
@@ -54,17 +47,14 @@ class FinalDataset(Dataset):
         media_path = self.path_list[idx]
         label = self.labels[idx]
         try:
-            # Check if the path is a directory (a folder of frames)
             if os.path.isdir(media_path):
                 frame_paths = glob.glob(os.path.join(media_path, '*.jpg'))
                 if not frame_paths: raise IOError(f"No frames found in {media_path}")
                 
-                # Randomly sample one frame from the folder
                 chosen_path = random.choice(frame_paths)
                 image = np.array(Image.open(chosen_path).convert('RGB'))
                 image_tensor = self.transform(image)
             
-            # Else, it's a single image file
             else:
                 image = np.array(Image.open(media_path).convert('RGB'))
                 image_tensor = self.transform(image)
@@ -72,7 +62,6 @@ class FinalDataset(Dataset):
         except Exception as e:
             print(f"Error loading {media_path}: {e}. Returning a placeholder.")
             image_tensor = torch.zeros((3, IMAGE_SIZE, IMAGE_SIZE))
-            # Return a valid tensor for the label as well
             label = 0 
             
         return image_tensor, torch.tensor(label, dtype=torch.float32)
@@ -86,7 +75,6 @@ def get_dataloaders():
     SYNTH_DATA_DIR = './synthbuster'
     EXTRACTED_FRAMES_DIR = './extracted_frames/'
 
-    # Helper function to get a list of FOLDERS for the extracted frames
     def get_frame_folders(data_dir, class_map):
         folder_list, labels = [], []
         for cls, label in class_map.items():
@@ -97,7 +85,6 @@ def get_dataloaders():
                 labels.extend([label] * len(video_folders))
         return folder_list, labels
 
-    # Helper function for single image files
     def get_image_files(data_dir, class_map):
         file_list, labels = [], []
         for cls, label in class_map.items():
@@ -115,14 +102,12 @@ def get_dataloaders():
     datasets_paths = {'train': [], 'valid': [], 'test': []}
     datasets_labels = {'train': [], 'valid': [], 'test': []}
 
-    # Load the original image files
     print("Loading original image dataset...")
     for split in ['train', 'valid', 'test']:
         img_files, img_labels = get_image_files(os.path.join(IMAGE_DATA_DIR, split), image_class_map)
         datasets_paths[split].extend(img_files)
         datasets_labels[split].extend(img_labels)
 
-    # Load and split the extracted frames folders
     print("Loading extracted frames dataset...")
     all_frame_folders, all_frame_labels = get_frame_folders(EXTRACTED_FRAMES_DIR, video_frame_class_map)
     vid_train_folders, vid_valid_folders, vid_test_folders = [], [], []
@@ -136,7 +121,6 @@ def get_dataloaders():
     else:
         print("Warning: No data found in 'extracted_frames'. Skipping this dataset.")
 
-    # Load and split the SynthBuster images
     print("Loading SynthBuster dataset...")
     all_synth_files = []
     if os.path.exists(SYNTH_DATA_DIR):
@@ -158,7 +142,6 @@ def get_dataloaders():
     else:
         print("Warning: No data found in 'synthbuster'. Skipping this dataset.")
 
-    # Combine all paths and labels
     print("Combining all datasets...")
     datasets_paths['train'].extend(vid_train_folders)
     datasets_paths['train'].extend(synth_train_files)
@@ -175,7 +158,6 @@ def get_dataloaders():
     datasets_labels['test'].extend(vid_test_labels)
     datasets_labels['test'].extend(synth_test_labels)
 
-    # --- Create Final Datasets and Dataloaders ---
     final_datasets = {
         'train': FinalDataset(datasets_paths['train'], datasets_labels['train'], data_transforms['train']),
         'valid': FinalDataset(datasets_paths['valid'], datasets_labels['valid'], data_transforms['valid_test']),
